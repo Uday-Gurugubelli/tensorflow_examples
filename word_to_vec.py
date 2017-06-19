@@ -3,8 +3,6 @@ import tensorflow as tf
 tf.reset_default_graph()
 tf.logging.set_verbosity(tf.logging.INFO)
 
-init_op=tf.global_variables_initializer()
-
 file = "C:\\tf_examples\\text_lines_input_1k.txt"
 
 def find_bigrams(input_list):
@@ -32,20 +30,21 @@ tokenizer = tf.contrib.keras.preprocessing.text.Tokenizer(
                                     num_words=7500)
 
 '''**********'''
+batch = 100
 vocab_size=7500
 embeddings = tf.Variable(tf.random_uniform([vocab_size, 128], -1, 1))
-weights = tf.Variable(tf.truncated_normal([vocab_size, 128],
+nce_weights = tf.Variable(tf.truncated_normal([vocab_size, 128],
                         stddev=1.0/tf.sqrt(tf.cast(vocab_size, tf.float32))))
-biases = tf.Variable(tf.zeros([vocab_size]))
+nce_biases = tf.Variable(tf.zeros([vocab_size]))
 
-train_inputs  = tf.placeholder(tf.int32, [1000])
-train_labels = tf.placeholder(tf.int32, [1000, 1])
+train_inputs  = tf.placeholder(tf.int32, [batch])
+train_labels = tf.placeholder(tf.int32, [batch, 1])
 
 embed = tf.nn.embedding_lookup(embeddings, train_inputs)
 
 loss = tf.reduce_mean(
-                tf.nn.nce_loss(weights=weights,
-                               biases = biases,
+                tf.nn.nce_loss(weights=nce_weights,
+                               biases = nce_biases,
                                inputs = embed,
                                labels = train_labels,
                                num_sampled=100,
@@ -53,6 +52,7 @@ loss = tf.reduce_mean(
 
 optimizer = tf.train.GradientDescentOptimizer(learning_rate=1.0).minimize(loss)
 '''**************'''
+init_op=tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init_op)
     coord = tf.train.Coordinator()
@@ -71,22 +71,18 @@ with tf.Session() as sess:
     tens_bi = tf.reshape(tens_bi, [-1,1,2])
     tens_rev_bi = tf.reshape(tens_rev_bi, [-1,1,2])
     word_enq1 = word_q.enqueue_many(tens_rev_bi)
-    word_enq2 = word_q.enqueue_many(tens_bi)
-    words_batch=[]
-    for i in range(1000):    
-        words_batch.append(word_q.dequeue())
+    word_enq2 = word_q.enqueue_many(tens_bi)   
+    t1, t2 = tf.unstack(word_q.dequeue_many(batch), axis=-1)
+    
     qr = tf.train.QueueRunner(word_q, [word_enq1, word_enq2])
     q_threads = qr.create_threads(sess, coord=coord, start=True)
     print("***************")
     
-    t1, t2 = tf.unstack(words_batch, axis=-1)
-    x=[]
-    y=[]
-    for i in range(1000):
-        x = t1[i].eval()
-        y = t2[i].eval()
-    lss = sess.run(loss, feed_dict={train_inputs: x,
-                              train_labels: y})
+    t1 = tf.reshape(t1, [batch])
+    t2 = tf.reshape(t2, [batch, 1])
+    for i in range(100)
+        embd, lss = sess.run([embed, loss], feed_dict={train_inputs: t1.eval(),
+                                                            train_labels: t2.eval()})
     print(lss)
     
     coord.request_stop()
