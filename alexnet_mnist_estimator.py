@@ -88,4 +88,3 @@ for i in range(5):
     mnist_classifier.train(input_fn=my_input_fn, steps=10, max_steps=None)
 
 mnist_classifier.evaluate(input_fn=my_input_fn_test, steps=1)
-
