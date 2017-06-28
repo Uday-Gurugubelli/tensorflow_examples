@@ -63,3 +63,4 @@ def my_input_fn():
 estimator = tf.estimator.Estimator(model_fn = model_fn)
 for i in range(100):
     estimator.train(input_fn = my_input_fn, steps = 1)
+
