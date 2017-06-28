@@ -165,4 +165,3 @@ with tf.Session() as sess:
     accuracy = sess.run(cost, feed_dict={x:xt})
     print("Autoencoder Accuracy on test images :",'%f' %accuracy)
     
-
