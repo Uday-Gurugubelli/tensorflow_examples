@@ -113,8 +113,7 @@ def alexnet_model_fn(features, labels, mode):
                                   activation=None)
     
     train_op=None
-    lss=0.
-    loss=tf.convert_to_tensor(lss)
+    loss=tf.convert_to_tensor(0.)
     predictions=None
     eval_metric_ops = None
     global_step = tf.train.get_global_step()
@@ -130,7 +129,7 @@ def alexnet_model_fn(features, labels, mode):
 
     if (mode == tf.estimator.ModeKeys.PREDICT or
              mode == tf.estimator.ModeKeys.EVAL):                   
-        predictions = {"pred_labels": tf.argmax(dense_nw_logits, axis=0)}
+        predictions = {"pred_labels": tf.argmax(dense_nw_logits, axis=1)}
 
     if (mode == tf.estimator.ModeKeys.EVAL):
         eval_metric_ops = {"accuracy":
@@ -142,23 +141,24 @@ def alexnet_model_fn(features, labels, mode):
                                       eval_metric_ops=eval_metric_ops)
 
 def my_ip_fn():
-    x ,y = mnist.train.next_batch(1000)
+    x ,y = mnist.train.next_batch(100)
     x1 = tf.convert_to_tensor(x)
     y1 = tf.convert_to_tensor(y)
     return x1 ,y1
 
 def ip_fn_test():
-    x ,y = mnist.test.next_batch(1000)
+    x ,y = mnist.test.next_batch(100)
     x1 = tf.convert_to_tensor(x)
-    y1 = None #tf.convert_to_tensor(y)
+    y1 = None 
     return x1 ,y1
 
 mnist_classifier = tf.estimator.Estimator(
                             model_fn = alexnet_model_fn,
                             model_dir="C:\\tf_examples\\kagle_mnist_model")
-for i in range(10):
-    mnist_classifier.train(input_fn = my_ip_fn, steps=1, max_steps=None)
-    mnist_classifier.evaluate(input_fn = my_ip_fn, steps=1)
+for i in range(100):
+    mnist_classifier.train(input_fn = my_ip_fn, steps=10, max_steps=None)
+    
+mnist_classifier.evaluate(input_fn = my_ip_fn, steps=1)
 
 pred = mnist_classifier.predict(input_fn=ip_fn_test)
 
