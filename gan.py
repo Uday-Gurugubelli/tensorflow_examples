@@ -75,6 +75,5 @@ if __name__ == '__main__':
                         default='/tmp/gan_model',
                         help='path to model dir')
     FLAGS, unparsed = parser.parse_known_args()
+
     
-    
-    main(sys.argv[0])
