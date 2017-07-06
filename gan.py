@@ -9,7 +9,7 @@ tf.reset_default_graph()
 FALGS=None
 img_dim = 784
 batch=100
-niter=100
+niter=1000
 
 mnist = input_data.read_data_sets("MNIST_data/")
 test_data = np.random.uniform(0., 1., [batch, img_dim])
@@ -27,9 +27,11 @@ def discriminator(x):
 
 def model_fn(features, labels, mode):
 
-    gen_sample = generator(features)
+    fake = tf.random_uniform([batch, img_dim], 0, 1)
+    
+    gen_sample = generator(fake)
     disc_fake = discriminator(gen_sample)
-    disc_real = discriminator(gen_sample)
+    disc_real = discriminator(features)
     
     train_op = None
     predictions = None
@@ -37,13 +39,16 @@ def model_fn(features, labels, mode):
     global_step = tf.train.get_global_step()
     if(mode == tf.estimator.ModeKeys.EVAL or
             mode == tf.estimator.ModeKeys.TRAIN):
-        loss = -tf.reduce_mean(tf.log(disc_real) + tf.log(1. - disc_fake))
+        loss_disc = -tf.reduce_mean(tf.log(disc_real) + tf.log(1. - disc_fake))
+        loss_gen = -tf.reduce_mean(tf.log(gen_sample))
+        loss = loss_disc + loss_gen
       
     if(mode == tf.estimator.ModeKeys.TRAIN):
         train_op = tf.train.GradientDescentOptimizer(0.01).minimize(
                             loss, global_step = global_step)
-    gen_pred = generator(features)    
-    predictions = {"pred_labels ": tf.convert_to_tensor(gen_pred)}
+    if(mode == tf.estimator.ModeKeys.PREDICT):
+        gen_pred = generator(features)    
+        predictions = {"pred_labels ": tf.convert_to_tensor(gen_gen)}
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
                                     train_op=train_op, predictions=predictions)
 
