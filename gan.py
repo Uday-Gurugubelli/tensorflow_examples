@@ -14,7 +14,7 @@ test_batch = 20
 niter=50000
 
 mnist = input_data.read_data_sets("MNIST_data/")
-test_data = np.random.uniform(0., 1., [test_batch, z_dim])
+test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
 
 def generator(ip, reuse=False):
     with tf.variable_scope('Generator', reuse=reuse):
