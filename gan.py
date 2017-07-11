@@ -8,7 +8,7 @@ tf.reset_default_graph()
 
 FALGS=None
 img_dim = 784
-z_dim = 100
+z_dim = 784
 batch=100
 test_batch = 20
 niter=50000
