@@ -11,7 +11,7 @@ img_dim = 784
 z_dim = 784
 batch=100
 test_batch = 20
-niter=50000
+niter=500
 
 mnist = input_data.read_data_sets("MNIST_data/")
 test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
@@ -50,8 +50,12 @@ def model_fn(features, labels, mode):
     fake = tf.random_uniform([batch, z_dim], 0, 1)
     
     gen_sample = generator(fake)
+    gen_samp = tf.stop_gradient(gen_sample)
     disc_fake = discriminator(gen_sample)
     disc_real = discriminator(features, reuse=True)
+    
+    gen_sample_g = generator(fake, reuse=True)
+    disc_fake_g = discriminator(gen_sample_g, reuse=True)
     
     train_op = None
     predictions = None
@@ -60,15 +64,14 @@ def model_fn(features, labels, mode):
     if(mode == tf.estimator.ModeKeys.EVAL or
             mode == tf.estimator.ModeKeys.TRAIN):
         loss_disc = -tf.reduce_mean(tf.log(disc_real) + tf.log(1. - disc_fake))
-        loss_gen = -tf.reduce_mean(tf.log(disc_fake))
-        loss = loss_disc + loss_gen
+        loss_gen = -tf.reduce_mean(tf.log(disc_fake_g))
+        loss = loss_disc+loss_gen+tf.losses.get_regularization_loss()
       
     if(mode == tf.estimator.ModeKeys.TRAIN):
         train_op = tf.train.GradientDescentOptimizer(0.001).minimize(
                             loss, global_step = global_step)
-    if(mode == tf.estimator.ModeKeys.PREDICT):
-        gen_pred = generator(features, reuse=True)    
-        predictions = {"pred ": tf.convert_to_tensor(gen_pred)}
+    if(mode == tf.estimator.ModeKeys.PREDICT):  
+        predictions = {"pred ": tf.convert_to_tensor(gen_sample_g)}
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
                                     train_op=train_op, predictions=predictions)
 
@@ -87,7 +90,7 @@ def plt_ip_fn():
 def main(_):
     estimator = tf.estimator.Estimator(model_fn = model_fn)
     for i in range(niter):
-        estimator.train(input_fn = input_fn, steps = 1)
+        estimator.train(input_fn = input_fn, steps = 100)
     
     pred = estimator.predict(input_fn = plt_ip_fn)
     op = []
