@@ -132,10 +132,6 @@ def plt_ip_fn():
 def main(_):
     dir_d = os.path.join(FLAGS.model_dir, "gan_d_model")
     dir_g = os.path.join(FLAGS.model_dir, "gan_g_model")
-    if not os.path.exists(dir_d):
-        os.mkdir(dir_d)
-    if not os.path.exists(dir_g):
-        os.mkdir(dir_g)
     
     est_d = tf.estimator.Estimator(model_fn = model_d, model_dir = dir_d)
     est_g = tf.estimator.Estimator(model_fn = model_g, model_dir = dir_g)
