@@ -8,10 +8,10 @@ tf.reset_default_graph()
 
 FALGS=None
 img_dim = 784
-z_dim = 784
+z_dim = 100
 batch=100
 test_batch = 20
-niter=500
+niter=10000
 
 mnist = input_data.read_data_sets("MNIST_data/")
 test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
@@ -30,6 +30,7 @@ def generator(ip, reuse=False):
                         bias_regularizer=None)
         net = tf.layers.dense(inputs=net, units=img_dim, activation=tf.nn.sigmoid)
         return net
+    
 def discriminator(ip, reuse=False):
     with tf.variable_scope('Discriminator', reuse=reuse):
         net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
@@ -45,52 +46,102 @@ def discriminator(ip, reuse=False):
         net = tf.layers.dense(inputs=net, units=1, activation=tf.nn.sigmoid)
         return net
 
-def model_fn(features, labels, mode):
+def dg(f):
 
-    fake = tf.random_uniform([batch, z_dim], 0, 1)
+    gen_smp = generator(f['zf'], reuse=False)
+    gen_smp = tf.stop_gradient(gen_smp)
+    disc_fake = discriminator(gen_smp, reuse=False)
+    disc_real = discriminator(f['zr'], reuse=True)
+
+    gen_smp_g = generator(f['zf'], reuse=True)
+    disc_gen_g = discriminator(gen_smp_g, reuse=True)
     
-    gen_sample = generator(fake)
-    gen_samp = tf.stop_gradient(gen_sample)
-    disc_fake = discriminator(gen_sample)
-    disc_real = discriminator(features, reuse=True)
-    
-    gen_sample_g = generator(fake, reuse=True)
-    disc_fake_g = discriminator(gen_sample_g, reuse=True)
-    
+    return disc_real, disc_fake, disc_gen_g, gen_smp
+
+def model_g(features, labels, mode):
+
+    a, b, disc_fake_g, c = dg(features) 
+        
     train_op = None
-    predictions = None
     loss = tf.convert_to_tensor(0.)
+    predictions = None
+    eval_metric_ops = None
+    global_step = tf.train.get_global_step()
+    if(mode == tf.estimator.ModeKeys.EVAL or
+        mode == tf.estimator.ModeKeys.TRAIN):
+
+        l_real = tf.ones([batch, 1])
+
+        loss_gen = tf.losses.sigmoid_cross_entropy(l_real, disc_fake_g)
+        loss = loss_gen+tf.losses.get_regularization_loss(scope='Generator')
+
+        train_op = tf.train.GradientDescentOptimizer(0.1).minimize(
+                              loss, global_step = global_step)
+            
+    if(mode == tf.estimator.ModeKeys.PREDICT):
+        a, b, c, pred_sample = dg(features)
+        predictions = {"pred_sample": pred_sample}
+        
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
+                                        train_op=train_op, predictions=predictions,
+                                        eval_metric_ops = eval_metric_ops)                                                                        
+
+def model_d(features, labels, mode):
+     
+    disc_real, disc_fake, c, d = dg(features)
+
+    l_real = tf.ones([batch, 1])
+    l_fake = tf.zeros([batch, 1])
+
+    train_op = None
+    loss = tf.convert_to_tensor(0.)
+    predictions = None
+    eval_metric_ops = None
     global_step = tf.train.get_global_step()
     if(mode == tf.estimator.ModeKeys.EVAL or
             mode == tf.estimator.ModeKeys.TRAIN):
-        loss_disc = -tf.reduce_mean(tf.log(disc_real) + tf.log(1. - disc_fake))
-        loss_gen = -tf.reduce_mean(tf.log(disc_fake_g))
-        loss = loss_disc+loss_gen+tf.losses.get_regularization_loss()
-      
-    if(mode == tf.estimator.ModeKeys.TRAIN):
-        train_op = tf.train.GradientDescentOptimizer(0.001).minimize(
-                            loss, global_step = global_step)
-    if(mode == tf.estimator.ModeKeys.PREDICT):  
-        predictions = {"pred ": tf.convert_to_tensor(gen_sample_g)}
+
+        loss_real = tf.losses.sigmoid_cross_entropy(l_real, disc_real)
+        loss_fake = tf.losses.sigmoid_cross_entropy(l_fake, disc_fake)
+        loss_disc = loss_real+loss_fake
+        loss = loss_disc+tf.losses.get_regularization_loss(scope='Discriminator')
+
+        train_op = tf.train.GradientDescentOptimizer(0.1).minimize(
+                              loss, global_step = global_step)
+        
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
-                                    train_op=train_op, predictions=predictions)
+                                        train_op=train_op, predictions=predictions,
+                                        eval_metric_ops = eval_metric_ops)
 
 def input_fn():
-    t1, t2 = mnist.train.next_batch(batch)
-    return tf.convert_to_tensor(t1), tf.convert_to_tensor(t2)
-
-def plt_ip_fn():
-    global test_data
-    [t] = tf.train.slice_input_producer([test_data], num_epochs=1)
-    x = tf.train.shuffle_batch([t], batch_size=test_batch, capacity = 500,
-                                        min_after_dequeue=100)
+    zf = tf.random_uniform([batch, f_dim], 0, 1)
+    zr, t2 = mnist.train.next_batch(batch)
+    zr = tf.reshape(zr, [batch, img_dim])
+    x = {'zr':zr, 'zf':zf}
     y = None
     return x, y
 
+def plt_ip_fn():
+    zf = np.random.uniform(0., 1., [test_batch, f_dim]).astype(np.float32)
+    zr = np.random.uniform(0., 1., [test_batch, img_dim]).astype(np.float32)
+    x = {'zr':zr, 'zf':zf}
+    y = None
+    return tf.estimator.inputs.numpy_input_fn(x, y, batch_size=test_batch, num_epochs=1,
+                                            shuffle=False)
+
 def main(_):
-    estimator = tf.estimator.Estimator(model_fn = model_fn)
+    dir_d = os.path.join(FLAGS.model_dir, "gan_d_model")
+    dir_g = os.path.join(FLAGS.model_dir, "gan_g_model")
+    if not os.path.exists(dir_d):
+        os.mkdir(dir_d)
+    if not os.path.exists(dir_g):
+        os.mkdir(dir_g)
+    
+    est_d = tf.estimator.Estimator(model_fn = model_d, model_dir = dir_d)
+    est_g = tf.estimator.Estimator(model_fn = model_g, model_dir = dir_g)
     for i in range(niter):
-        estimator.train(input_fn = input_fn, steps = 100)
+        est_d.train(input_fn = input_fn, steps = 10)
+        est_g.train(input_fn = input_fn, steps = 10)
     
     pred = estimator.predict(input_fn = plt_ip_fn)
     op = []
