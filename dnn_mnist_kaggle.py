@@ -11,29 +11,29 @@ dft = pd.read_csv("./train.csv")
 fdi = pd.read_csv("./test.csv")
 batch=1000
 FLAGS=None			
-iter =200	
+iter =25000	
 def nn(x):
 	x = tf.layers.dense(inputs=x, units=256, activation=tf.nn.tanh,
 				kernel_initializer=None, #tf.random_normal_initializer(0, 1),
 				bias_initializer=tf.zeros_initializer(),
-		        #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		        #bias_regularizer=None
+		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
+		                #bias_regularizer=None
 				)#tf.contrib.layers.l2_regularizer(0.001))
 	x = tf.layers.batch_normalization(x, training=FLAGS.phase)
 	x = tf.layers.dropout(x, 0.70)
 	x = tf.layers.dense(inputs=x, units=128, activation=tf.nn.elu,
 				kernel_initializer=None, #tf.random_normal_initializer(0, 1),
 				bias_initializer=tf.zeros_initializer(),
-		        #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		        #bias_regularizer=None
+		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
+		                #bias_regularizer=None
 				)#tf.contrib.layers.l2_regularizer(0.001))
 	x = tf.layers.batch_normalization(x, training=FLAGS.phase)
 	x = tf.layers.dropout(x, 0.80)
 	x = tf.layers.dense(inputs=x, units=64, activation=tf.nn.relu,
 				kernel_initializer=None, #tf.random_normal_initializer(0, 1),
 				bias_initializer=tf.zeros_initializer(),
-		        #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		        #bias_regularizer=None
+		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
+		                #bias_regularizer=None
 				)#tf.contrib.layers.l2_regularizer(0.001))
 	x = tf.layers.dense(inputs=x, units=10, activation=None)#tf.nn.softmax)
 	return x
@@ -59,13 +59,12 @@ def model_fn(features, labels, mode):
 		eval_metric_ops = {"accuracy": tf.metrics.accuracy(tf.argmax(labels,1), tf.argmax(y,1)),
                           "precision": tf.metrics.precision(tf.argmax(labels,1), tf.argmax(y,1)),
                           "recall": tf.metrics.recall(tf.argmax(labels,1), tf.argmax(y,1))}
-	#acc = tf.Print(acc, [acc])
+	
 	return tf.estimator.EstimatorSpec(mode=mode, loss=loss, 
 					train_op=train_op, predictions=predictions, eval_metric_ops = eval_metric_ops)
 
 def input_fn():
    	t1, t2 = mnist.train.next_batch(batch)
-	#t1 = np.random.uniform(0., 1., [1000,784])
 	t2 = tf.reshape(t2, [batch, 10])
 	mean, var = tf.nn.moments(tf.convert_to_tensor(t1), 1, keep_dims=True)
 	t1 = (tf.reshape(t1, [batch, 784]) -mean)/tf.sqrt(var)
@@ -78,8 +77,6 @@ def ip_fn():
 	labels = tf.reshape(tf.one_hot(tf.cast(labels, tf.int32), 10), [batch, 10])
 	mean, var = tf.nn.moments(features, 1, keep_dims=True)
 	features = (tf.reshape(features, [batch, 784])-mean)/tf.sqrt(var)
-    #features = tf.nn.l2_normalize(tf.subtract(features, mean), dim=1)
-#	tf.Print(mmnts, [mmnts])
 	return features, labels
 
 def ip_fn_infer():
@@ -102,8 +99,6 @@ def ip_fn_infer():
 
     mean, var = tf.nn.moments(feat_rev, 1, keep_dims=True)
     features = (tf.reshape(feat_rev, [batch, 784])-mean)/tf.sqrt(var)
-    #features = tf.reshape(feat_rev, [batch, 784])
-    #features = tf.nn.l2_normalize(features, dim=1)
     labels = None
     return features, labels
 
@@ -152,19 +147,4 @@ if __name__ == '__main__':
     FLAGS, unparsed = parser.parse_known_args()
 
 tf.app.run()
-'''
-def ip_fn_infer():
-    global fdi
-    if not fdi.empty:
-        data = pd.DataFrame(fdi.head(100), dtype='float32')
-        features = tf.contrib.learn.extract_pandas_data(data)
-        fdi = fdi.drop(fdi.index[:100])
-        features = tf.reshape(tf.cast(features, tf.float32), [100, 784])
-        labels = None
-        return features, labels
-    else:
-	return None
-'''
-'''
-'''
 
