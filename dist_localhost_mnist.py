@@ -17,51 +17,32 @@ def nn(features):
     y = tf.layers.dense(inputs=x, units=10, activation=tf.nn.softmax)
     return y
 
-def task0():
+def task(i):
     cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
     server = tf.train.Server(cluster, job_name="local",
-                                     task_index=0)
-def task1():
-    cluster = tf.train.ClusterSpec({"local": ["localhost:2222", "localhost:2223"]})
-    server = tf.train.Server(cluster, job_name="local",
-                                    task_index=1)
+                                     task_index=i)
+    
 def main(_):
-    #ps_hosts=FLAGS.ps_hosts.split(",")
-    #worker_hosts=FLAGS.worker_hosts.split(",")
-    #cluster = tf.train.ClusterSpec({"ps":ps_hosts, "worker":worker_hosts})
-    mp.get_context('spawn')
                     
     if FLAGS.job_name == "local":
+        for i in range(2):
+            p=mp.Process(target=task0, args=(i,))
+            p.start()
+            p.join()
         
-        p0=mp.Process(target=task0, args=())
-        p0.start()
-        p0.join()
-        p1=mp.Process(target=task1, args=())
-        p1.start()
-        p1.join()
-        
-        with tf.device(tf.train.replica_device_setter(
-                    worker_device="/job:local/task:0",
-                            cluster=None)):
-            feat, labels = mnist.train.next_batch(100)
-            feat = tf.reshape(feat, [100, 784])
-            labels  = tf.reshape(labels, [100,10])
-            y = nn(feat)
-            global_step = tf.contrib.framework.get_or_create_global_step()
-            loss = tf.losses.softmax_cross_entropy(
-                    onehot_labels=labels, logits=y)
-            #train_op = tf.train.RMSPropOptimizer(0.01).minimize(
-            #                loss, global_step = global_step)
+        feat, labels = mnist.train.next_batch(100)
+        feat = tf.reshape(feat, [100, 784])
+        labels  = tf.reshape(labels, [100,10])
+        y = nn(feat)
+        global_step = tf.contrib.framework.get_or_create_global_step()
+        loss = tf.losses.softmax_cross_entropy(
+                        onehot_labels=labels, logits=y)
+                   
+        train_op = tf.train.RMSPropOptimizer(0.01).minimize(
+                        loss, global_step = global_step)
 
-        with tf.device(tf.train.replica_device_setter(
-                    worker_device="/job:local/task:1",
-                            cluster=None)):
-            
-            train_op = tf.train.RMSPropOptimizer(0.01).minimize(
-                            loss, global_step = global_step)
-
-            hooks =[tf.train.StopAtStepHook(last_step = 10000)]
-        with tf.train.MonitoredTrainingSession(master='',#server.target,
+        hooks =[tf.train.StopAtStepHook(last_step = 10000)]
+        with tf.train.MonitoredTrainingSession(master='',
                             is_chief=(FLAGS.task_index == 0),
                             checkpoint_dir="/tmp/train_logs",
                             hooks=hooks) as mon_sess:
