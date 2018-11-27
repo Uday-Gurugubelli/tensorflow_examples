@@ -148,3 +148,35 @@ if __name__ == '__main__':
 
 tf.app.run()
 
+def ip_fn_train():
+    a=[1.]
+    FLAGS=None
+    file_q = tf.train.string_input_producer(["./train_1k.csv"],
+                                                num_epochs=1, shuffle=False)
+    reader = tf.TextLineReader(skip_header_lines=1)
+    key, val = reader.read(file_q)
+    record_defaults = [a for i in range(785)]
+    rev = tf.decode_csv(
+                    val, record_defaults, field_delim=',')
+    
+    min_after_dequeue=5000
+    capacity = min_after_dequeue + 3 * batch
+    feat_lbl, feat_rev = tf.train.batch([rev, rev], batch_size=batch,
+                                    capacity = capacity,
+                                    #min_after_dequeue = min_after_dequeue,
+                                    allow_smaller_final_batch=True)
+    feat_lbl = tf.slice(feat_rev, [0, 0], [batch, 1])
+    feat_rev = tf.slice(feat_rev, [0, 1], [batch, 784])
+
+    #print(feat_lbl, feat_rev)
+
+    feat_lbl = tf.cast(feat_lbl, tf.int32)
+    #print(feat_lbl)
+    mean, var = tf.nn.moments(feat_rev, 1, keep_dims=True)
+    features = (tf.reshape(feat_rev, [batch, 784])-mean)/tf.sqrt(var)
+    #labels = tf.one_hot(feat_lbl, 10)
+    labels = tf.reshape(tf.one_hot(feat_lbl, 10, axis=-1),[batch, 10])
+    #labels = list(tf.unstack(labels, axis=0))
+    #labels = tf.stack(labels, -1)
+    #print(tf.rank(labels))
+    return features, labels
