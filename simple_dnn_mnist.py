@@ -11,33 +11,34 @@ tf.reset_default_graph()
 
 batch=100
 FLAGS=None
+cols = [i for i in range(785)]
+data = np.loadtxt("./train.csv",
+                  delimiter=",", skiprows=1, usecols=cols)
+lbls = data[:,0].astype(int)
+features = data[:,1:]
+features = features / features.max()
 
-lbls = np.loadtxt("./train.csv",
-                  delimiter=",", skiprows=1, usecols=[0]).astype(int)
 #print(lbls.size)
 #print(lbls.max().astype(int))
 #labels = np.zeros(lbls.size, lbls.max().astype(int)+1)
 #labels[np.arange(lbls.size), lbls] = 1
-lb_values = np.max(lbls) + 1
-labels = np.eye(lb_values)[lbls]
-
-cols = [i for i in range(785)]
-cols = cols[1:]
-features = np.loadtxt("./train.csv", delimiter=",", skiprows=1, usecols=cols)
+#lb_values = np.max(lbls) + 1
+#labels = np.eye(lb_values)[lbls]
 
 cols = [i for i in range(784)]
 test_features = np.loadtxt("./test.csv", delimiter=",", skiprows=1, usecols=cols)
-
+test_features = test_features / test_features.max()
 #(x_train, y_train), (x_test, y_test) = mnist.load_data()
 #x_train = x_train.reshape(-1, 784)
 #x_test = x_test.reshape(-1, 784)
 feature_columns = [tf.feature_column.numeric_column(key = 'features', shape=(784,))]
 
 classifier = tf.estimator.DNNClassifier(
-                hidden_units = [1024, 512, 256],
+                hidden_units = [1024, 512, 256, 128],
                 feature_columns = feature_columns,
                 model_dir = None,
-                n_classes = 10)
+                n_classes = 10,
+                bath_norm = True)
 
 def main(_):
     #file = open('./test.csv', "r")
