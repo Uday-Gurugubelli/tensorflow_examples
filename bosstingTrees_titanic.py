@@ -45,8 +45,15 @@ for col in cat_cols:
 print(train_X)
 print(test_X)
 
-train_X = train_X/train_X.max().astype(np.float32)
-test_X = test_X/test_X.max().astype(np.float32)
+norm = preprocessing.StandardScaler().fit(
+        x_train[["Age","SibSp","Parch","Fare","Sex","Cabin","Embarked","Pclass"]])
+x_train = norm.transform(
+        x_train[["Age","SibSp","Parch","Fare","Sex","Cabin","Embarked","Pclass"]])
+
+norm = preprocessing.StandardScaler().fit(
+        x_test[["Age","SibSp","Parch","Fare","Sex","Cabin","Embarked","Pclass"]])
+x_test = norm.transform(
+        x_test[["Age","SibSp","Parch","Fare","Sex","Cabin","Embarked","Pclass"]])
 
 print(train_X)
 print(test_X)
