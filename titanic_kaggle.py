@@ -56,7 +56,11 @@ for i in range(891):
 for i in range(418):
   if test_X.iloc[i,0] > 60 : test_X.iloc[i,0] = 60 
   if test_X.iloc[i,3] > 100 : test_X.iloc[i,3] = 100  
-    
+
+column_to_normalize = ['Age','Fare','SibSp','Parch']
+scaler = StandardScaler()
+train_X[column_to_normalize] = scaler.fit_transform(train_X[column_to_normalize])
+test_X[column_to_normalize] = scaler.fit_transform(test_X[column_to_normalize])    
 
 #print(train_X.head())
 
