@@ -45,16 +45,37 @@ feature_2 = tf.feature_column.categorical_column_with_identity(
                                   'feature_2', 4)
 feature_3 = tf.feature_column.categorical_column_with_identity(
                                   'feature_3', 2)
+
+feat_1 = tf.feature_column.indicator_column(
+                tf.feature_column.categorical_column_with_vocabulary_list(
+                                    'feature_1', ['1', '2', '3', '4', '5']))
+feat_2 = tf.feature_column.indicator_column(
+                tf.feature_column.categorical_column_with_vocabulary_list(
+                                    'feature_2', ['1', '2', '3']))
+feat_3 = tf.feature_column.indicator_column(
+                tf.feature_column.categorical_column_with_vocabulary_list(
+                                    'feature_3', ['0', '1']))
+
+#feature_1 = tf.feature_column.bucketized_column(
+#    tf.feature_column.numeric_column(key = 'feature_1'), [0, 6])
+#feature_2 = tf.feature_column.bucketized_column(
+#    tf.feature_column.numeric_column(key = 'feature_2'), [0, 4])
+#feature_3 = tf.feature_column.bucketized_column(
+#    tf.feature_column.numeric_column(key = 'feature_3'), [0, 2])
+
+
 feature_1x2 = tf.feature_column.crossed_column([feature_1, feature_2], 25000)
 feature_1x3 = tf.feature_column.crossed_column([feature_1, feature_3], 25000)
 feature_2x3 = tf.feature_column.crossed_column([feature_2, feature_3], 25000)
+feature_1x2x3 = tf.feature_column.crossed_column([feature_1, feature_2, feature_3], 25000)
 
-feature_1_emb = tf.feature_column.embedding_column(feature_1, 10)
-feature_2_emb = tf.feature_column.embedding_column(feature_2,10)
-feature_3_emb = tf.feature_column.embedding_column(feature_3,10)
-feature_1x2_emb = tf.feature_column.embedding_column(feature_1x2,10)
-feature_1x3_emb = tf.feature_column.embedding_column(feature_1x3,10)
-feature_2x3_emb = tf.feature_column.embedding_column(feature_2x3,10)
+feature_1_emb = tf.feature_column.embedding_column(feature_1, 5)
+feature_2_emb = tf.feature_column.embedding_column(feature_2, 5)
+feature_3_emb = tf.feature_column.embedding_column(feature_3, 5)
+feature_1x2_emb = tf.feature_column.embedding_column(feature_1x2, 5)
+feature_1x3_emb = tf.feature_column.embedding_column(feature_1x3, 5)
+feature_2x3_emb = tf.feature_column.embedding_column(feature_2x3, 5)
+feature_1x2x3_emb = tf.feature_column.embedding_column(feature_1x2x3, 5)
 
 '''
 feature_1_4 = tf.feature_column.bucketized_column(
