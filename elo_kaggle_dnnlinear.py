@@ -40,7 +40,7 @@ x_test = test_data.drop(drop_cols, axis=1).astype(np.float32)
 #print(x_test)
 #rgrsr = XGBRegressor()
 feature_1 = tf.feature_column.categorical_column_with_identity(
-                                  'feature_1', 7)
+                                  'feature_1', 6)
 feature_2 = tf.feature_column.categorical_column_with_identity(
                                   'feature_2', 4)
 feature_3 = tf.feature_column.categorical_column_with_identity(
@@ -78,27 +78,34 @@ feature_2x3_emb = tf.feature_column.embedding_column(feature_2x3, 5)
 feature_1x2x3_emb = tf.feature_column.embedding_column(feature_1x2x3, 5)
 
 '''
+feature_1_1 = tf.feature_column.bucketized_column(
+    tf.feature_column.numeric_column(key = 'feature_1_1'), (0, 1))
+feature_1_2 = tf.feature_column.bucketized_column(
+    tf.feature_column.numeric_column(key = 'feature_1_2'), (0, 1))
+feature_1_3 = tf.feature_column.bucketized_column(
+    tf.feature_column.numeric_column(key = 'feature_1_3'), (0, 1))
 feature_1_4 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_1_4.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_1_4'), (0, 1))
 feature_1_5 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_1_5.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_1_5'), (0, 1))
 feature_2_1 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_2_1.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_2_1'), (0, 1))
 feature_2_2 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_2_2.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_2_2'), (0, 1))
 feature_2_3 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_2_3.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_2_3'), (0, 1))
 feature_3_0 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_3_0.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_3_0'), (0, 1))
 feature_3_1 = tf.feature_column.bucketized_column(
-    tf.feature_column.numeric_column(key = 'feature_3_1.0'), (0, 1))
+    tf.feature_column.numeric_column(key = 'feature_3_1'), (0, 1))
 
 feature_columns = [feature_1_1,feature_1_2,feature_1_3,feature_1_4,feature_1_5,
                    feature_2_1, feature_2_2, feature_2_3, feature_3_0, feature_3_1]
-dnn_feature_columns = [feature_1_emb, feature_2_emb, feature_3_emb, feature_1x2_emb, feature_1x3_emb, feature_2x3_emb]
+dnn_feature_columns = [feature_1_emb, feature_2_emb, feature_3_emb, feature_1x2_emb,
+                        feature_1x3_emb, feature_2x3_emb, feature_1x2x3_emb]
 
 '''
-feature_columns = [feature_1, feature_2, feature_3, feature_1x2, feature_1x3, feature_2x3]
+feature_columns = [feature_1, feature_2, feature_3, feature_1x2, feature_1x3, feature_2x3, feature_1x2x3]
 
 
 classifier = tf.estimator.LinearRegressor(
@@ -128,6 +135,15 @@ classifier = tf.estimator.DNNRegressor(
                         global_step=tf.train.get_global_step(),
                         decay_steps=20000,
                         decay_rate=0.96))) 
+                        
+classifier = tf.estimator.BoostedTreesRegressor(
+                feature_columns = feature_columns,
+                model_dir = "./model_dnn",
+                n_batches_per_layer = 10,
+                n_trees = 100,
+                max_depth=100)
+                #tree_complexity = 0.2,
+                #l2_regularization=0.01)
 
 '''
 
