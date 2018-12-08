@@ -49,6 +49,13 @@ feature_1x2 = tf.feature_column.crossed_column([feature_1, feature_2], 25000)
 feature_1x3 = tf.feature_column.crossed_column([feature_1, feature_3], 25000)
 feature_2x3 = tf.feature_column.crossed_column([feature_2, feature_3], 25000)
 
+feature_1_emb = tf.feature_column.embedding_column(feature_1, 10)
+feature_2_emb = tf.feature_column.embedding_column(feature_2,10)
+feature_3_emb = tf.feature_column.embedding_column(feature_3,10)
+feature_1x2_emb = tf.feature_column.embedding_column(feature_1x2,10)
+feature_1x3_emb = tf.feature_column.embedding_column(feature_1x3,10)
+feature_2x3_emb = tf.feature_column.embedding_column(feature_2x3,10)
+
 '''
 feature_1_4 = tf.feature_column.bucketized_column(
     tf.feature_column.numeric_column(key = 'feature_1_4.0'), (0, 1))
@@ -67,6 +74,8 @@ feature_3_1 = tf.feature_column.bucketized_column(
 
 feature_columns = [feature_1_1,feature_1_2,feature_1_3,feature_1_4,feature_1_5,
                    feature_2_1, feature_2_2, feature_2_3, feature_3_0, feature_3_1]
+dnn_feature_columns = [feature_1_emb, feature_2_emb, feature_3_emb, feature_1x2_emb, feature_1x3_emb, feature_2x3_emb]
+
 '''
 feature_columns = [feature_1, feature_2, feature_3, feature_1x2, feature_1x3, feature_2x3]
 
@@ -84,20 +93,21 @@ classifier = tf.estimator.LinearRegressor(
 
 '''
 classifier = tf.estimator.DNNRegressor(
-                feature_columns = feature_columns,
-                hidden_units = [16, 16, 16],
-                model_dir = "./model_dnn")
+                feature_columns = dnn_feature_columns,
+                hidden_units = [512, 512, 512, 512],
+                model_dir = "./model_dnn1",
                 #n_classes = 1,
                 #activation_fn = tf.nn.elu,
-                #dropout=0.2,
+                dropout=0.7,
                 #batch_norm = True,
-                optimizer = '', #tf.train.GradientDescentOptimizer(),
-                    #lambda: tf.train.AdamOptimizer(
-                        #learning_rate=tf.train.exponential_decay(
-                        #learning_rate=0.1,
-                        #global_step=tf.train.get_global_step(),
-                        #decay_steps=10000,
-                        #decay_rate=0.5))) 
+                optimizer =  #tf.train.GradientDescentOptimizer(),
+                    lambda: tf.train.AdamOptimizer(
+                        learning_rate=tf.train.exponential_decay(
+                        learning_rate=0.1,
+                        global_step=tf.train.get_global_step(),
+                        decay_steps=20000,
+                        decay_rate=0.96))) 
+
 '''
 
 classifier.train(input_fn = tf.estimator.inputs.pandas_input_fn(
