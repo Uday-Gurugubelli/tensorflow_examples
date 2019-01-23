@@ -86,13 +86,13 @@ regressor.train(input_fn = input_fn, steps= 4000)
 rslts=regressor.evaluate(input_fn = input_fn, steps= 10)
 print(rslts)
 submission = pd.read_csv('../input/sample_submission.csv', index_col='seg_id', dtype={"time_to_failure": np.float32})
-pred_data = list()
+
 # Load each test data, create the feature matrix, get numeric prediction
 
 def pred_input_fn():
     test_files = "../input/test/"+submission.index.values+".csv"
     #print(test_files)
-    recod_defaults = [tf.float32]
+    record_defaults = [tf.float32]
     dataset = tf.data.experimental.CsvDataset(test_files, record_defaults, header=True)
     dataset = dataset.batch(150000)
     itr = dataset.make_one_shot_iterator()
