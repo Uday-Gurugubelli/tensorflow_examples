@@ -63,7 +63,7 @@ def nn(x, mode):
 
 def model_fn(features, labels, mode):
     
-    y=nn(features,mode)
+    y_=nn(features,mode)
     train_op=None
     loss=tf.convert_to_tensor(0.)
     predictions=None
@@ -80,7 +80,7 @@ def model_fn(features, labels, mode):
         train_op = tf.train.AdamOptimizer(lr).minimize(loss, global_step = global_step)
 	
     if(mode == tf.estimator.ModeKeys.PREDICT):
-        predictions = {"predictions": y}
+        predictions = {"predictions": y_}
     if(mode == tf.estimator.ModeKeys.EVAL):         
         eval_metric_ops = {"mean_absolute_error": tf.metrics.mean_absolute_error(labels, y)}
    	    
