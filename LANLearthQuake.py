@@ -19,6 +19,7 @@ def input_fn():
     record_defaults = [tf.float32]*2
     dataset = tf.data.experimental.CsvDataset(file, record_defaults, header=True)
     dataset = dataset.batch(150000)
+    dataset = dataset.map(lambda x, y: (tf.math.l2_normalize(x),y))
     itr  = dataset.make_one_shot_iterator()
     data = itr.get_next()
     tf.print("data:",data)
@@ -26,31 +27,39 @@ def input_fn():
     
 def nn(x, mode):
     x = tf.reshape(x,(-1,150000))
-    x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.tanh,
-				#kernel_initializer=None, #tf.random_normal_initializer(0, 1),
-				#bias_initializer=tf.zeros_initializer(),
-		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		                #bias_regularizer=None
-				)#tf.contrib.layers.l2_regularizer(0.001))
+    x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.relu,
+                                        kernel_initializer=tf.random_normal_initializer(0, 1),
+                                        bias_initializer=tf.zeros_initializer(),
+                                        kernel_regularizer=tf.contrib.layers.l1_regularizer(0.0001))
     x = tf.layers.batch_normalization(x, training=mode==tf.estimator.ModeKeys.TRAIN)
     x = tf.layers.dropout(x, 0.70)
     x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.relu,
-				#kernel_initializer=None, #tf.random_normal_initializer(0, 1),
-				#bias_initializer=tf.zeros_initializer(),
-		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		                #bias_regularizer=None
-				)#tf.contrib.layers.l2_regularizer(0.001))
+                                        kernel_initializer=tf.random_normal_initializer(0, 1),
+                                        bias_initializer=tf.zeros_initializer(),
+                                        kernel_regularizer=tf.contrib.layers.l1_regularizer(0.0001))
     x = tf.layers.batch_normalization(x, training=mode==tf.estimator.ModeKeys.TRAIN)
     x = tf.layers.dropout(x, 0.70)
     x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.relu,
-				#kernel_initializer=None, #tf.random_normal_initializer(0, 1),
-				#bias_initializer=tf.zeros_initializer(),
-		                #kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0005),
-		                #bias_regularizer=None
-				)#tf.contrib.layers.l2_regularizer(0.001))
+                                        kernel_initializer=tf.random_normal_initializer(0, 1),
+                                        bias_initializer=tf.zeros_initializer(),
+                                        kernel_regularizer=tf.contrib.layers.l1_regularizer(0.0001))
     x = tf.layers.batch_normalization(x, training=mode==tf.estimator.ModeKeys.TRAIN)
+    x = tf.layers.dropout(x, 0.70)
+    x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.relu,
+                                        kernel_initializer=tf.random_normal_initializer(0, 1),
+                                        bias_initializer=tf.zeros_initializer(),
+                                        kernel_regularizer=tf.contrib.layers.l1_regularizer(0.0001))
+    x = tf.layers.batch_normalization(x, training=mode==tf.estimator.ModeKeys.TRAIN)
+    x = tf.layers.dropout(x, 0.70)
+    x = tf.layers.dense(inputs=x, units=1000, activation=tf.nn.relu,
+                                        kernel_initializer=tf.random_normal_initializer(0, 1),
+                                        bias_initializer=tf.zeros_initializer(),
+                                        kernel_regularizer=tf.contrib.layers.l1_regularizer(0.0001))
+    x = tf.layers.batch_normalization(x, training=mode==tf.estimator.ModeKeys.TRAIN)
+    x = tf.layers.dropout(x, 0.70)
     x = tf.layers.dense(inputs=x, units=1, activation=None)#tf.nn.softmax)
     return x
+
 
 def model_fn(features, labels, mode):
     
@@ -60,10 +69,10 @@ def model_fn(features, labels, mode):
     predictions=None
     eval_metric_ops=None
     global_step=tf.train.get_global_step()
-    print("global_step:", global_step)
+    y = tf.reshape(tf.tile(tf.reshape(y_,(1,1)),[1,150000]),(1,150000))
     if(mode == tf.estimator.ModeKeys.EVAL or
         mode == tf.estimator.ModeKeys.TRAIN):
-            labels = tf.reshape(labels, (150000,1))
+            labels = tf.reshape(labels, (1,150000))
             loss = tf.losses.absolute_difference(labels=labels, predictions=y) + tf.losses.get_regularization_loss()
 	        
     if(mode == tf.estimator.ModeKeys.TRAIN):
@@ -95,6 +104,7 @@ def pred_input_fn():
     record_defaults = [tf.float32]
     dataset = tf.data.experimental.CsvDataset(test_files, record_defaults, header=True)
     dataset = dataset.batch(150000)
+    dataset = dataset.map(lambda x, y: (tf.math.l2_normalize(x),y))
     itr = dataset.make_one_shot_iterator()
     data = itr.get_next()
     return data, None
