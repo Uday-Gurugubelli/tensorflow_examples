@@ -81,16 +81,18 @@ import tensorflow as tf
 #x = tf.placeholder(tf.float32, [None, 2])
 #y = tf.placeholder(tf.float32, [None, 1])
 #X = np.reshape(X, (33,214200,2))
+BATCH_SIZE=100
 def rnn(x):
     lstm = tf.nn.rnn_cell.LSTMCell(10, state_is_tuple=True, reuse=tf.AUTO_REUSE, activation=tf.nn.relu)
     #lstm1 = tf.nn.rnn_cell.LSTMCell(2,state_is_tuple=True, reuse=tf.AUTO_REUSE)
-    stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm, lstm, lstm])#, lstm, lstm])
-    initial_state = state = stacked_lstm.zero_state(1, tf.float32)
-    x= tf.reshape(x, [1,28,10])
+    stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm, lstm, lstm, lstm, lstm])
+    initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
+    x= tf.reshape(x, [BATCH_SIZE,28,10])
     #for i in range(28):
         #print(x.shape)
     #    x1 = tf.reshape(x[i,:], [1,5,2])
-    output, state = tf.nn.dynamic_rnn(cell=stacked_lstm, inputs=x, initial_state=initial_state, sequence_length=[5])
+    output, state = tf.nn.dynamic_rnn(cell=stacked_lstm, inputs=x, 
+                                      initial_state=initial_state, sequence_length=[5 for _ in range(BATCH_SIZE)])
     f_state = state
     print("output:", output)
     output = tf.reshape(output, (-1,280))
@@ -99,7 +101,7 @@ def rnn(x):
     
 def model_fn(features, labels, mode):
     y = rnn(features)
-    y = tf.reshape(y, [1,28])
+    y = tf.reshape(y, [BATCH_SIZE,28])
     train_op = None
     loss = tf.convert_to_tensor(0.)
     predictions = None
@@ -107,7 +109,7 @@ def model_fn(features, labels, mode):
     global_step = tf.train.get_global_step()
     if(mode == tf.estimator.ModeKeys.EVAL or
             mode == tf.estimator.ModeKeys.TRAIN):
-        labels=  tf.reshape(labels, [1,28])
+        labels=  tf.reshape(labels, [BATCH_SIZE,28])
         loss = tf.losses.absolute_difference(labels, y) + tf.losses.get_regularization_loss()
     if(mode == tf.estimator.ModeKeys.TRAIN):
         lr = tf.train.exponential_decay(0.01, global_step, 1000, 0.10000, staircase=False)
@@ -124,23 +126,23 @@ for _ in range(1):
     est.train(input_fn=tf.estimator.inputs.numpy_input_fn(
         #dict({"features":X}), Y,
         XX.astype(np.float32), YY.astype(np.float32),
-        batch_size=1, num_epochs=10, shuffle=True), steps= 214200)
+        batch_size=BATCH_SIZE, num_epochs=10, shuffle=True), steps= 214200)
     est.evaluate(input_fn=tf.estimator.inputs.numpy_input_fn(
         XX.astype(np.float32), YY.astype(np.float32),
-        batch_size=1, num_epochs=1, shuffle=True), steps= 10)
+        batch_size=BATCH_SIZE, num_epochs=1, shuffle=True), steps= 10)
 
 # Transform test set into numpy matrix
 #test = test.drop(labels=['2013-01'],axis=1)
-x_test_sales = test.values.reshape((test.shape[0], test.shape[1], 1))
-x_test_prices = price #.drop(labels=['2013-01'],axis=1)
-x_test_prices = x_test_prices.values.reshape((x_test_prices.shape[0], x_test_prices.shape[1], 1))
-print(test.shape)
+#x_test_sales = test.values.reshape((test.shape[0], test.shape[1], 1))
+#x_test_prices = price #.drop(labels=['2013-01'],axis=1)
+#x_test_prices = x_test_prices.values.reshape((x_test_prices.shape[0], x_test_prices.shape[1], 1))
+#print(test.shape)
 # Combine Price and Sales Df
-test = np.append(x_test_sales,x_test_prices,axis=2)
-print(test.shape)
+#test = np.append(x_test_sales,x_test_prices,axis=2)
+#print(test.shape)
 pred=est.predict(input_fn=tf.estimator.inputs.numpy_input_fn(
         TEST.astype(np.float32),
-        batch_size=1, num_epochs=1, shuffle=False))
+        batch_size=BATCH_SIZE, num_epochs=1, shuffle=False))
 predictions=list()
 for i,p in enumerate(pred):
     [pp] = p["predictions"]
