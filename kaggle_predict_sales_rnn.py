@@ -95,7 +95,7 @@ def rnn(x):
                                       initial_state=initial_state, sequence_length=[5 for _ in range(BATCH_SIZE)])
     f_state = state
     print("output:", output)
-    output = tf.reshape(output, (-1,280))
+    output = tf.reshape(output, (BATCH_SIZE,280))
     dense_out = tf.layers.dense(inputs=output, units=28, activation=None ) #tf.nn.relu)
     return dense_out
     
