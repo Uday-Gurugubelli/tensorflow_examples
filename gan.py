@@ -18,19 +18,19 @@ test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
 
 def generator(ip, trainable=False):
     
-    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
+    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.relu, 
                     trainable=trainable)
-    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh, 
+    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.relu, 
                     trainable=trainable)
-    net = tf.layers.dense(inputs=net, units=img_dim, activation=tf.nn.sigmoid, 
+    net = tf.layers.dense(inputs=net, units=img_dim, activation=tf.nn.relu, 
                     trainable=trainable)    
     return net
     
 def discriminator(ip, trainable=False):
     
-    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
+    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.relu, 
                     trainable=trainable)
-    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh,
+    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.relu,
                     trainable=trainable)
     net = tf.layers.dense(inputs=net, units=1, activation=tf.nn.sigmoid,
                     trainable=trainable)
