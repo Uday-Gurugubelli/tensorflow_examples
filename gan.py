@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-imort matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from tensorflow.examples.tutorials.mnist import input_data
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -8,7 +8,7 @@ tf.reset_default_graph()
 
 FALGS=None
 img_dim = 784
-z_dim = 100
+z_dim = 784
 batch=100
 test_batch = 20
 niter=10000
@@ -16,51 +16,60 @@ niter=10000
 mnist = input_data.read_data_sets("MNIST_data/")
 test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
 
-def generator(ip, reuse=False):
-    with tf.variable_scope('Generator', reuse=reuse):
-        net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh,
-                        kernel_initializer= tf.random_uniform_initializer(-1,1),
-                        bias_initializer=tf.zeros_initializer(),
-                        kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
-                        bias_regularizer=None)
-        net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh,
-                        kernel_initializer= tf.random_uniform_initializer(-1,1),
-                        bias_initializer=tf.zeros_initializer(),
-                        kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
-                        bias_regularizer=None)
-        net = tf.layers.dense(inputs=net, units=img_dim, activation=tf.nn.sigmoid)
-        return net
+def generator(ip, trainable=False):
     
-def discriminator(ip, reuse=False):
-    with tf.variable_scope('Discriminator', reuse=reuse):
-        net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
-                        kernel_initializer= tf.random_uniform_initializer(-1,1),
-                        bias_initializer=tf.zeros_initializer(),
-                        kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
-                        bias_regularizer=None)
-        net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh,
-                        kernel_initializer= tf.random_uniform_initializer(-1,1),
-                        bias_initializer=tf.zeros_initializer(),
-                        kernel_regularizer=tf.contrib.layers.l2_regularizer(0.001),
-                        bias_regularizer=None)
-        net = tf.layers.dense(inputs=net, units=1, activation=tf.nn.sigmoid)
-        return net
+    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
+                    trainable=trainable)
+    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh, 
+                    trainable=trainable)
+    net = tf.layers.dense(inputs=net, units=img_dim, activation=tf.nn.sigmoid, 
+                    trainable=trainable)    
+    return net
+    
+def discriminator(ip, trainable=False):
+    
+    net = tf.layers.dense(inputs=ip, units=512, activation=tf.nn.tanh, 
+                    trainable=trainable)
+    net = tf.layers.dense(inputs=net, units=1024, activation=tf.nn.tanh,
+                    trainable=trainable)
+    net = tf.layers.dense(inputs=net, units=1, activation=tf.nn.sigmoid,
+                    trainable=trainable)
+    return net
 
 def dg(f):
 
-    gen_smp = generator(f['zf'], reuse=False)
-    gen_smp = tf.stop_gradient(gen_smp)
-    disc_fake = discriminator(gen_smp, reuse=False)
-    disc_real = discriminator(f['zr'], reuse=True)
+    gen_smp = generator(f, True)
+    disc_fake = discriminator(gen_smp, False)
+    return gen_smp, disc_fake
+  
+def disc(f):
 
-    gen_smp_g = generator(f['zf'], reuse=True)
-    disc_gen_g = discriminator(gen_smp_g, reuse=True)
-    
-    return disc_real, disc_fake, disc_gen_g, gen_smp
+    gen_smp = generator(f, False)
+    disc_fake = discriminator(gen_smp, True)
+    return gen_smp, disc_fake
+
+def input_disc():
+    zf = tf.random_uniform([batch, z_dim], 0, 1)
+    zr, t2 = mnist.train.next_batch(batch)
+    zr = tf.reshape(zr, [batch, img_dim])
+    x = tf.concat([zr, zf], 0)
+    print(x)
+    y1 = [0.9 for _ in range(batch)]
+    y2 = tf.zeros([batch,1])
+    print(y2)
+    y = tf.concat([tf.reshape(y1, (100,1)),y2], 0)
+    print(y)
+    return x, y
+
+def input_gan():
+    x = tf.random_uniform([batch, z_dim], 0, 1)
+    y = tf.ones([batch, 1])
+    print(x,y)
+    return x, y
 
 def model_g(features, labels, mode):
 
-    a, b, disc_fake_g, c = dg(features) 
+    gen_imgs, disc_fake_g = dg(features) 
         
     train_op = None
     loss = tf.convert_to_tensor(0.)
@@ -70,28 +79,22 @@ def model_g(features, labels, mode):
     if(mode == tf.estimator.ModeKeys.EVAL or
         mode == tf.estimator.ModeKeys.TRAIN):
 
-        l_real = tf.ones([batch, 1])
+        loss_gen = tf.losses.sigmoid_cross_entropy(labels, disc_fake_g)
+        loss = loss_gen+tf.losses.get_regularization_loss()
 
-        loss_gen = tf.losses.sigmoid_cross_entropy(l_real, disc_fake_g)
-        loss = loss_gen+tf.losses.get_regularization_loss(scope='Generator')
-
-        train_op = tf.train.GradientDescentOptimizer(0.1).minimize(
+        train_op = tf.train.AdamOptimizer(0.001).minimize(
                               loss, global_step = global_step)
             
     if(mode == tf.estimator.ModeKeys.PREDICT):
-        a, b, c, pred_sample = dg(features)
-        predictions = {"pred_sample": pred_sample}
+        predictions = {"predictions": gen_imgs}
         
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
                                         train_op=train_op, predictions=predictions,
-                                        eval_metric_ops = eval_metric_ops)                                                                        
+                                        eval_metric_ops = eval_metric_ops)   
 
 def model_d(features, labels, mode):
      
-    disc_real, disc_fake, c, d = dg(features)
-
-    l_real = tf.ones([batch, 1])
-    l_fake = tf.zeros([batch, 1])
+    _, disc_fake = disc(features)
 
     train_op = None
     loss = tf.convert_to_tensor(0.)
@@ -101,33 +104,15 @@ def model_d(features, labels, mode):
     if(mode == tf.estimator.ModeKeys.EVAL or
             mode == tf.estimator.ModeKeys.TRAIN):
 
-        loss_real = tf.losses.sigmoid_cross_entropy(l_real, disc_real)
-        loss_fake = tf.losses.sigmoid_cross_entropy(l_fake, disc_fake)
-        loss_disc = loss_real+loss_fake
-        loss = loss_disc+tf.losses.get_regularization_loss(scope='Discriminator')
+        loss_disc = tf.losses.sigmoid_cross_entropy(labels, disc_fake)
+        loss = loss_disc+tf.losses.get_regularization_loss()
 
-        train_op = tf.train.GradientDescentOptimizer(0.1).minimize(
+        train_op = tf.train.AdamOptimizer(0.001).minimize(
                               loss, global_step = global_step)
         
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
                                         train_op=train_op, predictions=predictions,
                                         eval_metric_ops = eval_metric_ops)
-
-def input_fn():
-    zf = tf.random_uniform([batch, f_dim], 0, 1)
-    zr, t2 = mnist.train.next_batch(batch)
-    zr = tf.reshape(zr, [batch, img_dim])
-    x = {'zr':zr, 'zf':zf}
-    y = None
-    return x, y
-
-def plt_ip_fn():
-    zf = np.random.uniform(0., 1., [test_batch, f_dim]).astype(np.float32)
-    zr = np.random.uniform(0., 1., [test_batch, img_dim]).astype(np.float32)
-    x = {'zr':zr, 'zf':zf}
-    y = None
-    return tf.estimator.inputs.numpy_input_fn(x, y, batch_size=test_batch, num_epochs=1,
-                                            shuffle=False)
 
 def main(_):
     dir_d = os.path.join(FLAGS.model_dir, "gan_d_model")
