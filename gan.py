@@ -11,7 +11,7 @@ img_dim = 784
 z_dim = 784
 batch=100
 test_batch = 20
-niter=10000
+niter=1000
 
 mnist = input_data.read_data_sets("MNIST_data/")
 test_data = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)
@@ -82,7 +82,7 @@ def model_g(features, labels, mode):
         loss_gen = tf.losses.sigmoid_cross_entropy(labels, disc_fake_g)
         loss = loss_gen+tf.losses.get_regularization_loss()
 
-        train_op = tf.train.AdamOptimizer(0.001).minimize(
+        train_op = tf.train.AdamOptimizer(0.00001).minimize(
                               loss, global_step = global_step)
             
     if(mode == tf.estimator.ModeKeys.PREDICT):
@@ -107,7 +107,7 @@ def model_d(features, labels, mode):
         loss_disc = tf.losses.sigmoid_cross_entropy(labels, disc_fake)
         loss = loss_disc+tf.losses.get_regularization_loss()
 
-        train_op = tf.train.AdamOptimizer(0.001).minimize(
+        train_op = tf.train.AdamOptimizer(0.00001).minimize(
                               loss, global_step = global_step)
         
     return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
@@ -117,25 +117,24 @@ def model_d(features, labels, mode):
 est_g = tf.estimator.Estimator(model_fn = model_g)
 est_d = tf.estimator.Estimator(model_fn = model_d)
 for i in range(niter):
-  est_g.train(input_fn = input_gan, steps = 10)
-  est_d.train(input_fn = input_disc, steps = 10)
+  est_g.train(input_fn = input_gan, steps = 1)
+  est_d.train(input_fn = input_disc, steps = 1)
 
 def plt_ip_fn():	
-  x = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)	
+  x = tf.random_uniform([batch, z_dim], 0, 1) 
   y = None
-  return tf.estimator.inputs.numpy_input_fn(x, y, batch_size=test_batch, num_epochs=1,	
-                                            shuffle=False)
+  return x, y
 
 pred = est_g.predict(input_fn = plt_ip_fn)
 op = []
-for i, p in enumerate(pred):
+for _, p in enumerate(pred):
   op.append(p["pred"])
-  print(p["pred"])
+  #print(p["pred"])
 
-f, a = plt.subplots(2, 10, figsize=(10, 4))
+f, a = plt.subplots(10, 10, figsize=(10, 4))
 
 for i in range(10):
-  for j in range(2):
+  for j in range(10):
       a[j][i].imshow(np.reshape(op[i], (28, 28)))
 f.show()
 plt.draw()
