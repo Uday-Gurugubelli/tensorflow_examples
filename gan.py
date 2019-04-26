@@ -114,36 +114,29 @@ def model_d(features, labels, mode):
                                         train_op=train_op, predictions=predictions,
                                         eval_metric_ops = eval_metric_ops)
 
-def main(_):
-    dir_d = os.path.join(FLAGS.model_dir, "gan_d_model")
-    dir_g = os.path.join(FLAGS.model_dir, "gan_g_model")
-    
-    est_d = tf.estimator.Estimator(model_fn = model_d, model_dir = dir_d)
-    est_g = tf.estimator.Estimator(model_fn = model_g, model_dir = dir_g)
-    for i in range(niter):
-        est_d.train(input_fn = input_fn, steps = 10)
-        est_g.train(input_fn = input_fn, steps = 10)
-    
-    pred = estimator.predict(input_fn = plt_ip_fn)
-    op = []
-    for i, p in enumerate(pred):
-        op.append(p["pred"])
-        print(p["pred"])
-    
-    f, a = plt.subplots(2, 10, figsize=(10, 4))
+est_g = tf.estimator.Estimator(model_fn = model_g)
+est_d = tf.estimator.Estimator(model_fn = model_d)
+for i in range(niter):
+  est_g.train(input_fn = input_gan, steps = 10)
+  est_d.train(input_fn = input_disc, steps = 10)
 
-    for i in range(10):
-        for j in range(2):
-            a[j][i].imshow(np.reshape(op[i], (28, 28)))
-    f.show()
-    plt.draw()
-    plt.waitforbuttonpress()
-    
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir', type=str,
-                        default='/tmp/gan_model',
-                        help='path to model dir')
-    FLAGS, unparsed = parser.parse_known_args()
+def plt_ip_fn():	
+  x = np.random.uniform(0., 1., [test_batch, z_dim]).astype(np.float32)	
+  y = None
+  return tf.estimator.inputs.numpy_input_fn(x, y, batch_size=test_batch, num_epochs=1,	
+                                            shuffle=False)
 
-tf.app.run()
+pred = est_g.predict(input_fn = plt_ip_fn)
+op = []
+for i, p in enumerate(pred):
+  op.append(p["pred"])
+  print(p["pred"])
+
+f, a = plt.subplots(2, 10, figsize=(10, 4))
+
+for i in range(10):
+  for j in range(2):
+      a[j][i].imshow(np.reshape(op[i], (28, 28)))
+f.show()
+plt.draw()
+plt.waitforbuttonpress()
