@@ -8,7 +8,7 @@ tf.reset_default_graph()
 
 FALGS=None
 img_dim = 784
-z_dim = 784
+z_dim = 100
 batch=100
 test_batch = 20
 niter=1000
@@ -44,12 +44,16 @@ def dg(f):
   
 def disc(f):
 
-    gen_smp = generator(f, False)
-    disc_fake = discriminator(gen_smp, True)
-    return gen_smp, disc_fake
+    #gen_smp = generator(f, False)
+    #disc_fake = discriminator(gen_smp, True)
+    #return gen_smp, disc_fake
+
+    disc_fake = discriminator(f, True)
+    return disc_fake
 
 def input_disc():
     zf = tf.random_uniform([batch, z_dim], 0, 1)
+    zf = generator(zf, False)
     zr, t2 = mnist.train.next_batch(batch)
     zr = tf.reshape(zr, [batch, img_dim])
     x = tf.concat([zr, zf], 0)
@@ -94,7 +98,7 @@ def model_g(features, labels, mode):
 
 def model_d(features, labels, mode):
      
-    _, disc_fake = disc(features)
+    disc_fake = disc(features)
 
     train_op = None
     loss = tf.convert_to_tensor(0.)
