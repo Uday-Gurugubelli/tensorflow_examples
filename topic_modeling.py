@@ -38,3 +38,19 @@ Lda = gensim.models.ldamodel.LdaModel
 ldamodel = Lda(doc_term_matrix, num_topics=3, id2word = dictionary, passes=50)
 
 print(ldamodel.print_topics(num_topics=3, num_words=3))
+
+-----------------
+
+# train a LDA Model
+lda_model = decomposition.LatentDirichletAllocation(n_components=20, learning_method='online', max_iter=20)
+X_topics = lda_model.fit_transform(xtrain_count)
+topic_word = lda_model.components_ 
+vocab = count_vect.get_feature_names()
+
+# view the topic models
+n_top_words = 10
+topic_summaries = []
+for i, topic_dist in enumerate(topic_word):
+    topic_words = numpy.array(vocab)[numpy.argsort(topic_dist)][:-(n_top_words+1):-1]
+    topic_summaries.append(' '.join(topic_words))
+    
