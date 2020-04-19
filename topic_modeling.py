@@ -25,7 +25,8 @@ doc_clean = [clean(doc).split() for doc in doc_complete]
 import gensim
 from gensim import corpora
 
-# Creating the term dictionary of our courpus, where every unique term is assigned an index. dictionary = corpora.Dictionary(doc_clean)
+# Creating the term dictionary of our courpus, where every unique term is assigned an index. 
+dictionary = corpora.Dictionary(doc_clean)
 
 # Converting list of documents (corpus) into Document Term Matrix using dictionary prepared above.
 doc_term_matrix = [dictionary.doc2bow(doc) for doc in doc_clean]
