@@ -99,7 +99,8 @@ print(df)
 documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(df.apply(lambda x: x.split(" ")))]
 
 # train a Doc2Vec model with our text data
-model = Doc2Vec(documents, vector_size=100, window=2, min_count=1, workers=4)
+model = Doc2Vec(documents, vector_size=100, window=2, min_count=1, epochs=10)
+model.train(documents, total_examples=model.corpus_count, epochs=model.epochs)
 
 # transform each document into a vector data
 doc2vec_df = train_df["review_clean"].apply(lambda x: model.infer_vector(x.split(" "))).apply(pd.Series)
